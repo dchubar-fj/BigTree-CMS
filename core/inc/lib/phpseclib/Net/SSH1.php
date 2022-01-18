@@ -459,51 +459,6 @@ class Net_SSH1
     var $log_short_width = 16;
 
     /**
-     * Hostname
-     *
-     * @see Net_SSH1::Net_SSH1()
-     * @see Net_SSH1::_connect()
-     * @var String
-     * @access private
-     */
-    var $host;
-
-    /**
-     * Port Number
-     *
-     * @see Net_SSH1::Net_SSH1()
-     * @see Net_SSH1::_connect()
-     * @var Integer
-     * @access private
-     */
-    var $port;
-
-    /**
-     * Timeout for initial connection
-     *
-     * Set by the constructor call. Calling setTimeout() is optional. If it's not called functions like
-     * exec() won't timeout unless some PHP setting forces it too. The timeout specified in the constructor,
-     * however, is non-optional. There will be a timeout, whether or not you set it. If you don't it'll be
-     * 10 seconds. It is used by fsockopen() in that function.
-     *
-     * @see Net_SSH1::Net_SSH1()
-     * @see Net_SSH1::_connect()
-     * @var Integer
-     * @access private
-     */
-    var $connectionTimeout;
-
-    /**
-     * Default cipher
-     *
-     * @see Net_SSH1::Net_SSH1()
-     * @see Net_SSH1::_connect()
-     * @var Integer
-     * @access private
-     */
-    var $cipher;
-
-    /**
      * Default Constructor.
      *
      * Connects to an SSHv1 server
@@ -515,7 +470,41 @@ class Net_SSH1
      * @return Net_SSH1
      * @access public
      */
-    function Net_SSH1($host, $port = 22, $timeout = 10, $cipher = NET_SSH1_CIPHER_3DES)
+    function __construct(/**
+     * Hostname
+     *
+     * @see Net_SSH1::Net_SSH1()
+     * @see Net_SSH1::_connect()
+     * @access private
+     */
+    $host,
+    /**
+     * Default cipher
+     *
+     * @see Net_SSH1::Net_SSH1()
+     * @see Net_SSH1::_connect()
+     * @access private
+     */
+    $cipher = NET_SSH1_CIPHER_3DES, /**
+     * Port Number
+     *
+     * @see Net_SSH1::Net_SSH1()
+     * @see Net_SSH1::_connect()
+     * @access private
+     */
+    $port = 22, /**
+     * Timeout for initial connection
+     *
+     * Set by the constructor call. Calling setTimeout() is optional. If it's not called functions like
+     * exec() won't timeout unless some PHP setting forces it too. The timeout specified in the constructor,
+     * however, is non-optional. There will be a timeout, whether or not you set it. If you don't it'll be
+     * 10 seconds. It is used by fsockopen() in that function.
+     *
+     * @see Net_SSH1::Net_SSH1()
+     * @see Net_SSH1::_connect()
+     * @access private
+     */
+    $connectionTimeout = 10)
     {
         if (!class_exists('Math_BigInteger')) {
             include_once 'Math/BigInteger.php';
@@ -550,11 +539,6 @@ class Net_SSH1
         );
 
         $this->_define_array($this->protocol_flags);
-
-        $this->host = $host;
-        $this->port = $port;
-        $this->connectionTimeout = $timeout;
-        $this->cipher = $cipher;
     }
 
     /**
@@ -618,17 +602,19 @@ class Net_SSH1
         $this->host_key_public_modulus = $host_key_public_modulus;
 
         $this->_string_shift($response[NET_SSH1_RESPONSE_DATA], 4);
+        $unpack = unpack('Nsupported_ciphers_mask', $this->_string_shift($response[NET_SSH1_RESPONSE_DATA], 4));
 
         // get a list of the supported ciphers
-        extract(unpack('Nsupported_ciphers_mask', $this->_string_shift($response[NET_SSH1_RESPONSE_DATA], 4)));
+        extract($unpack);
         foreach ($this->supported_ciphers as $mask=>$name) {
             if (($supported_ciphers_mask & (1 << $mask)) == 0) {
                 unset($this->supported_ciphers[$mask]);
             }
         }
+        $unpack2 = unpack('Nsupported_authentications_mask', $this->_string_shift($response[NET_SSH1_RESPONSE_DATA], 4));
 
         // get a list of the supported authentications
-        extract(unpack('Nsupported_authentications_mask', $this->_string_shift($response[NET_SSH1_RESPONSE_DATA], 4)));
+        extract($unpack2);
         foreach ($this->supported_authentications as $mask=>$name) {
             if (($supported_authentications_mask & (1 << $mask)) == 0) {
                 unset($this->supported_authentications[$mask]);
@@ -953,9 +939,9 @@ class Net_SSH1
         while (true) {
             if ($mode == NET_SSH1_READ_REGEX) {
                 preg_match($expect, $this->interactiveBuffer, $matches);
-                $match = isset($matches[0]) ? $matches[0] : '';
+                $match = $matches[0] ?? '';
             }
-            $pos = strlen($match) ? strpos($this->interactiveBuffer, $match) : false;
+            $pos = strlen($match) ? strpos($this->interactiveBuffer, (string) $match) : false;
             if ($pos !== false) {
                 return $this->_string_shift($this->interactiveBuffer, $pos + strlen($match));
             }
@@ -1102,6 +1088,7 @@ class Net_SSH1
      */
     function _get_binary_packet()
     {
+        $raw = [];
         if (feof($this->fsock)) {
             //user_error('connection closed prematurely');
             return false;
@@ -1113,7 +1100,7 @@ class Net_SSH1
 
             $start = strtok(microtime(), ' ') + strtok(''); // http://php.net/microtime#61838
             $sec = floor($this->curTimeout);
-            $usec = 1000000 * ($this->curTimeout - $sec);
+            $usec = 1_000_000 * ($this->curTimeout - $sec);
             // on windows this returns a "Warning: Invalid CRT parameters detected" error
             if (!@stream_select($read, $write, $except, $sec, $usec) && !count($read)) {
                 //$this->_disconnect('Timeout');
@@ -1154,7 +1141,7 @@ class Net_SSH1
         $type = ord($type);
 
         if (defined('NET_SSH1_LOGGING')) {
-            $temp = isset($this->protocol_flags[$type]) ? $this->protocol_flags[$type] : 'UNKNOWN';
+            $temp = $this->protocol_flags[$type] ?? 'UNKNOWN';
             $temp = '<- ' . $temp .
                     ' (' . round($stop - $start, 4) . 's)';
             $this->_append_log($temp, $data);
@@ -1202,7 +1189,7 @@ class Net_SSH1
         $stop = strtok(microtime(), ' ') + strtok('');
 
         if (defined('NET_SSH1_LOGGING')) {
-            $temp = isset($this->protocol_flags[ord($orig[0])]) ? $this->protocol_flags[ord($orig[0])] : 'UNKNOWN';
+            $temp = $this->protocol_flags[ord($orig[0])] ?? 'UNKNOWN';
             $temp = '-> ' . $temp .
                     ' (' . round($stop - $start, 4) . 's)';
             $this->_append_log($temp, $orig);
@@ -1421,16 +1408,11 @@ class Net_SSH1
             return false;
         }
 
-        switch (NET_SSH1_LOGGING) {
-            case NET_SSH1_LOG_SIMPLE:
-                return $this->message_number_log;
-                break;
-            case NET_SSH1_LOG_COMPLEX:
-                return $this->_format_log($this->message_log, $this->protocol_flags_log);
-                break;
-            default:
-                return false;
-        }
+        return match (NET_SSH1_LOGGING) {
+            NET_SSH1_LOG_SIMPLE => $this->message_number_log,
+            NET_SSH1_LOG_COMPLEX => $this->_format_log($this->message_log, $this->protocol_flags_log),
+            default => false,
+        };
     }
 
     /**

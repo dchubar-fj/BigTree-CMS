@@ -20,7 +20,7 @@
 			$bigtree["trailing_slash_present"] = false;
 		} else {
 			$bigtree["path"] = explode("/",trim(trim($_SERVER["PATH_INFO"]),"/"));
-			$bigtree["trailing_slash_present"] = (substr($_SERVER["PATH_INFO"],-1,1) === "/");
+			$bigtree["trailing_slash_present"] = (str_ends_with($_SERVER["PATH_INFO"], "/"));
 		}
 
 	// "Advanced" or "Simple Rewrite" routing
@@ -30,7 +30,7 @@
 		}
 	
 		$bigtree["path"] = explode("/",rtrim(trim($_GET["bigtree_htaccess_url"]),"/"));
-		$bigtree["trailing_slash_present"] = (substr($_GET["bigtree_htaccess_url"],-1,1) === "/");
+		$bigtree["trailing_slash_present"] = (str_ends_with($_GET["bigtree_htaccess_url"], "/"));
 	}
 
 	// Prevent path manipulations
@@ -108,7 +108,7 @@
 	
 	// We're not in the admin, see if caching is enabled and serve up a cached page if it exists
 	if ($bigtree["config"]["cache"] && $bigtree["path"][0] != "_preview" && $bigtree["path"][0] != "_preview-pending") {
-		$cache_location = md5(json_encode($_GET));
+		$cache_location = md5(json_encode($_GET, JSON_THROW_ON_ERROR));
 		$file = BIGTREE_CACHE_DIRECTORY.$cache_location.".page";
 
 		// If the file is at least 5 minutes fresh, serve it up.

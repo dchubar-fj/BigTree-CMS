@@ -114,7 +114,7 @@
 				} else {
 					$intTextLength = mb_strlen($strText, $this->strEncoding);
 				}
-			} catch (Exception $e) {
+			} catch (Exception) {
 				$intTextLength = strlen($strText);
 			}
 			return $intTextLength;
@@ -134,7 +134,7 @@
 				} else {
 					$intTextLength = mb_strlen($strText, $this->strEncoding);
 				}
-			} catch (Exception $e) {
+			} catch (Exception) {
 				$intTextLength = strlen($strText);
 			}
 			return $intTextLength;
@@ -158,7 +158,7 @@
 			$strText = preg_replace('/([\.])[\. ]+/', '$1', $strText); // Check for duplicated terminators
 			$strText = trim(preg_replace('/[ ]*([\.])/', '$1 ', $strText)); // Pad sentence terminators
 			$strText = preg_replace('/[ ]+/', ' ', $strText); // Remove multiple spaces
-			$strText = preg_replace_callback('/\. [^ ]+/', function($matches) { return strtolower($matches[0]); }, $strText); // Lower case all words following terminators (for gunning fog score)
+			$strText = preg_replace_callback('/\. [^ ]+/', fn($matches) => strtolower($matches[0]), $strText); // Lower case all words following terminators (for gunning fog score)
 			return $strText;
 		}
 
@@ -174,7 +174,7 @@
 				} else {
 					$strLowerCaseText = mb_strtolower($strText, $this->strEncoding);
 				}
-			} catch (Exception $e) {
+			} catch (Exception) {
 				$strLowerCaseText = strtolower($strText);
 			}
 			return $strLowerCaseText;
@@ -192,7 +192,7 @@
 				} else {
 					$strUpperCaseText = mb_strtoupper($strText, $this->strEncoding);
 				}
-			} catch (Exception $e) {
+			} catch (Exception) {
 				$strUpperCaseText = strtoupper($strText);
 			}
 			return $strUpperCaseText;
@@ -213,7 +213,7 @@
 				} else {
 					$strSubstring = mb_substr($strText, $intStart, $intLength, $this->strEncoding);
 				}
-			} catch (Exception $e) {
+			} catch (Exception) {
 				$strSubstring = substr($strText, $intStart, $intLength);
 			}
 			return $strSubstring;

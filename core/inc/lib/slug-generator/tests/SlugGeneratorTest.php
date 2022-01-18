@@ -29,10 +29,6 @@ class SlugGeneratorTest extends TestCase
 
 	/**
 	 * @dataProvider getGenerate
-	 *
-	 * @param string $source
-	 * @param string $expected
-	 * @param array  $options
 	 */
 	public function testGenerate(string $source, string $expected, array $options = [])
 	{
@@ -43,9 +39,6 @@ class SlugGeneratorTest extends TestCase
 		$this->assertSame($expected, $generator->generate($source, $options));
 	}
 
-	/**
-	 * @return array
-	 */
 	public function getGenerate(): array
 	{
 		return [
@@ -245,23 +238,17 @@ class SlugGeneratorTest extends TestCase
 
 	/**
 	 * @dataProvider getPrivateApplyTransformRule
-	 *
-	 * @param array  $parameters
-	 * @param string $expected
 	 */
 	public function testPrivateApplyTransformRule(array $parameters, string $expected)
 	{
 		$generator = new SlugGenerator;
-		$reflection = new \ReflectionClass(get_class($generator));
+		$reflection = new \ReflectionClass($generator::class);
 		$method = $reflection->getMethod('applyTransformRule');
 		$method->setAccessible(true);
 
 		$this->assertSame($expected, $method->invokeArgs($generator, $parameters));
 	}
 
-	/**
-	 * @return array
-	 */
 	public function getPrivateApplyTransformRule(): array
 	{
 		return [
