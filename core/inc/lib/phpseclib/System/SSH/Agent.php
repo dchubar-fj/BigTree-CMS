@@ -100,24 +100,22 @@ class System_SSH_Agent_Identity
     var $key_blob;
 
     /**
-     * Socket Resource
-     *
-     * @var Resource
-     * @access private
-     * @see System_SSH_Agent_Identity::sign()
-     */
-    var $fsock;
-
-    /**
      * Default Constructor.
      *
      * @param Resource $fsock
      * @return System_SSH_Agent_Identity
      * @access private
      */
-    function System_SSH_Agent_Identity($fsock)
+    function __construct(
+        /**
+         * Socket Resource
+         *
+         * @access private
+         * @see System_SSH_Agent_Identity::sign()
+         */
+        $fsock
+    )
     {
-        $this->fsock = $fsock;
     }
 
     /**
@@ -231,7 +229,7 @@ class System_SSH_Agent
      * @return System_SSH_Agent
      * @access public
      */
-    function System_SSH_Agent()
+    function __construct()
     {
         switch (true) {
             case isset($_SERVER['SSH_AUTH_SOCK']):

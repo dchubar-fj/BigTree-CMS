@@ -122,13 +122,13 @@ class Net_SCP
      * @return Net_SCP
      * @access public
      */
-    function Net_SCP($ssh)
+    function __construct($ssh)
     {
         if (!is_object($ssh)) {
             return;
         }
 
-        switch (strtolower(get_class($ssh))) {
+        switch (strtolower($ssh::class)) {
             case'net_ssh2':
                 $this->mode = NET_SCP_SSH2;
                 break;
@@ -166,6 +166,7 @@ class Net_SCP
      */
     function put($remote_file, $data, $mode = NET_SCP_STRING, $callback = null)
     {
+        $fp = null;
         if (!isset($this->ssh)) {
             return false;
         }
@@ -315,6 +316,7 @@ class Net_SCP
      */
     function _receive()
     {
+        $length = null;
         switch ($this->mode) {
             case NET_SCP_SSH2:
                 return $this->ssh->_get_channel_packet(NET_SSH2_CHANNEL_EXEC, true);
@@ -326,7 +328,8 @@ class Net_SCP
                     $response = $this->ssh->_get_binary_packet();
                     switch ($response[NET_SSH1_RESPONSE_TYPE]) {
                         case NET_SSH1_SMSG_STDOUT_DATA:
-                            extract(unpack('Nlength', $response[NET_SSH1_RESPONSE_DATA]));
+                            $unpack = unpack('Nlength', $response[NET_SSH1_RESPONSE_DATA]);
+                            extract($unpack);
                             return $this->ssh->_string_shift($response[NET_SSH1_RESPONSE_DATA], $length);
                         case NET_SSH1_SMSG_STDERR_DATA:
                             break;

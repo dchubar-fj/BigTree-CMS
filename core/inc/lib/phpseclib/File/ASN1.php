@@ -117,23 +117,21 @@ define('FILE_ASN1_TYPE_ANY',             -2);
 class File_ASN1_Element
 {
     /**
-     * Raw element value
-     *
-     * @var String
-     * @access private
-     */
-    var $element;
-
-    /**
      * Constructor
      *
-     * @param String $encoded
+     * @param String $element
      * @return File_ASN1_Element
      * @access public
      */
-    function File_ASN1_Element($encoded)
+    function __construct(
+        /**
+         * Raw element value
+         *
+         * @access private
+         */
+        $element
+    )
     {
-        $this->element = $encoded;
     }
 }
 
@@ -245,7 +243,7 @@ class File_ASN1
      *
      * @access public
      */
-    function File_ASN1()
+    function __construct()
     {
         static $static_init = null;
         if (!$static_init) {
@@ -267,7 +265,7 @@ class File_ASN1
      */
     function decodeBER($encoded)
     {
-        if (is_object($encoded) && strtolower(get_class($encoded)) == 'file_asn1_element') {
+        if (is_object($encoded) && strtolower($encoded::class) == 'file_asn1_element') {
             $encoded = $encoded->element;
         }
 
@@ -324,7 +322,8 @@ class File_ASN1
             // tags of indefinte length don't really have a header length; this length includes the tag
             $current+= array('headerlength' => $length + 2);
             $start+= $length;
-            extract(unpack('Nlength', substr(str_pad($temp, 4, chr(0), STR_PAD_LEFT), -4)));
+            $unpack = unpack('Nlength', substr(str_pad($temp, 4, chr(0), STR_PAD_LEFT), -4));
+            extract($unpack);
         } else {
             $current+= array('headerlength' => 2);
         }
@@ -569,15 +568,9 @@ class File_ASN1
             case $decoded['type'] == $mapping['type']:
                 break;
             default:
-                // if $decoded['type'] and $mapping['type'] are both strings, but different types of strings,
-                // let it through
-                switch (true) {
-                    case $decoded['type'] < 18: // FILE_ASN1_TYPE_NUMERIC_STRING == 18
-                    case $decoded['type'] > 30: // FILE_ASN1_TYPE_BMP_STRING == 30
-                    case $mapping['type'] < 18:
-                    case $mapping['type'] > 30:
-                        return null;
-                }
+                return match (true) {
+                    $decoded['type'] < 18, $decoded['type'] > 30, $mapping['type'] < 18, $mapping['type'] > 30 => null,
+                };
         }
 
         if (isset($mapping['implicit'])) {
@@ -600,7 +593,7 @@ class File_ASN1
                     return $map;
                 }
 
-                $n = count($decoded['content']);
+                $n = is_countable($decoded['content']) ? count($decoded['content']) : 0;
                 $i = 0;
 
                 foreach ($mapping['children'] as $key => $child) {
@@ -613,7 +606,7 @@ class File_ASN1
                             $childClass = $tempClass = FILE_ASN1_CLASS_UNIVERSAL;
                             $constant = null;
                             if (isset($temp['constant'])) {
-                                $tempClass = isset($temp['class']) ? $temp['class'] : FILE_ASN1_CLASS_CONTEXT_SPECIFIC;
+                                $tempClass = $temp['class'] ?? FILE_ASN1_CLASS_CONTEXT_SPECIFIC;
                             }
                             if (isset($child['class'])) {
                                 $childClass = $child['class'];
@@ -672,11 +665,11 @@ class File_ASN1
                     return $map;
                 }
 
-                for ($i = 0; $i < count($decoded['content']); $i++) {
+                for ($i = 0; $i < (is_countable($decoded['content']) ? count($decoded['content']) : 0); $i++) {
                     $temp = $decoded['content'][$i];
                     $tempClass = FILE_ASN1_CLASS_UNIVERSAL;
                     if (isset($temp['constant'])) {
-                        $tempClass = isset($temp['class']) ? $temp['class'] : FILE_ASN1_CLASS_CONTEXT_SPECIFIC;
+                        $tempClass = $temp['class'] ?? FILE_ASN1_CLASS_CONTEXT_SPECIFIC;
                     }
 
                     foreach ($mapping['children'] as $key => $child) {
@@ -734,7 +727,7 @@ class File_ASN1
                 }
                 return $map;
             case FILE_ASN1_TYPE_OBJECT_IDENTIFIER:
-                return isset($this->oids[$decoded['content']]) ? $this->oids[$decoded['content']] : $decoded['content'];
+                return $this->oids[$decoded['content']] ?? $decoded['content'];
             case FILE_ASN1_TYPE_UTC_TIME:
             case FILE_ASN1_TYPE_GENERALIZED_TIME:
                 if (isset($mapping['implicit'])) {
@@ -753,7 +746,7 @@ class File_ASN1
                         therefore ensure that different semantics are not associated with such values which differ only in the number of trailing
                         0 bits."
                     */
-                    $bits = count($mapping['mapping']) == $size ? array() : array_fill(0, count($mapping['mapping']) - $size, false);
+                    $bits = (is_countable($mapping['mapping']) ? count($mapping['mapping']) : 0) == $size ? array() : array_fill(0, (is_countable($mapping['mapping']) ? count($mapping['mapping']) : 0) - $size, false);
                     for ($i = strlen($decoded['content']) - 1; $i > 0; $i--) {
                         $current = ord($decoded['content'][$i]);
                         for ($j = $offset; $j < 8; $j++) {
@@ -796,9 +789,7 @@ class File_ASN1
                 }
                 if (isset($mapping['mapping'])) {
                     $temp = (int) $temp->toString();
-                    return isset($mapping['mapping'][$temp]) ?
-                        $mapping['mapping'][$temp] :
-                        false;
+                    return $mapping['mapping'][$temp] ?? false;
                 }
                 return $temp;
         }
@@ -835,7 +826,8 @@ class File_ASN1
      */
     function _encode_der($source, $mapping, $idx = null, $special = array())
     {
-        if (is_object($source) && strtolower(get_class($source)) == 'file_asn1_element') {
+        $temp = [];
+        if (is_object($source) && strtolower($source::class) == 'file_asn1_element') {
             return $source->element;
         }
 
@@ -983,9 +975,9 @@ class File_ASN1
                 break;
             case FILE_ASN1_TYPE_BIT_STRING:
                 if (isset($mapping['mapping'])) {
-                    $bits = array_fill(0, count($mapping['mapping']), 0);
+                    $bits = array_fill(0, is_countable($mapping['mapping']) ? count($mapping['mapping']) : 0, 0);
                     $size = 0;
-                    for ($i = 0; $i < count($mapping['mapping']); $i++) {
+                    for ($i = 0; $i < (is_countable($mapping['mapping']) ? count($mapping['mapping']) : 0); $i++) {
                         if (in_array($mapping['mapping'][$i], $source)) {
                             $bits[$i] = 1;
                             $size = $i;
@@ -1001,7 +993,7 @@ class File_ASN1
 
                     $value = chr($offset);
 
-                    for ($i = $size + 1; $i < count($mapping['mapping']); $i++) {
+                    for ($i = $size + 1; $i < (is_countable($mapping['mapping']) ? count($mapping['mapping']) : 0); $i++) {
                         unset($bits[$i]);
                     }
 
@@ -1053,7 +1045,7 @@ class File_ASN1
                     case !isset($source):
                         return $this->_encode_der(null, array('type' => FILE_ASN1_TYPE_NULL) + $mapping, null, $special);
                     case is_int($source):
-                    case is_object($source) && strtolower(get_class($source)) == 'math_biginteger':
+                    case is_object($source) && strtolower($source::class) == 'math_biginteger':
                         return $this->_encode_der($source, array('type' => FILE_ASN1_TYPE_INTEGER) + $mapping, null, $special);
                     case is_float($source):
                         return $this->_encode_der($source, array('type' => FILE_ASN1_TYPE_REAL) + $mapping, null, $special);
@@ -1166,7 +1158,7 @@ class File_ASN1
 
         preg_match($pattern, $content, $matches);
 
-        list(, $year, $month, $day, $hour, $minute, $second, $timezone) = $matches;
+        [, $year, $month, $day, $hour, $minute, $second, $timezone] = $matches;
 
         if ($tag == FILE_ASN1_TYPE_UTC_TIME) {
             $year = $year >= 50 ? "19$year" : "20$year";

@@ -20,15 +20,12 @@ namespace Ausi\SlugGenerator;
  */
 class SlugGenerator
 {
-	/**
-	 * @var SlugOptions
-	 */
-	private $options;
+	private \Ausi\SlugGenerator\SlugOptions $options;
 
 	/**
 	 * @var \Transliterator[]
 	 */
-	private $transliterators = [];
+	private array $transliterators = [];
 
 	/**
 	 * @param $options SlugOptions object or options array
@@ -65,10 +62,8 @@ class SlugGenerator
 	/**
 	 * Generate a slug from the specified text.
 	 *
-	 * @param string   $text
 	 * @param $options SlugOptions object or options array
 	 *
-	 * @return string
 	 */
 	public function generate(string $text, $options = []): string
 	{
@@ -94,10 +89,7 @@ class SlugGenerator
 	/**
 	 * Remove ignored characters from text.
 	 *
-	 * @param string $text
-	 * @param string $ignore
 	 *
-	 * @return string
 	 */
 	private function removeIgnored(string $text, string $ignore): string
 	{
@@ -112,11 +104,7 @@ class SlugGenerator
 	 * Replace all invalid characters with a delimiter
 	 * and strip the delimiter from the beginning and the end.
 	 *
-	 * @param string $text
-	 * @param string $valid
-	 * @param string $delimiter
 	 *
-	 * @return string
 	 */
 	private function replaceWithDelimiter(string $text, string $valid, string $delimiter): string
 	{
@@ -139,12 +127,8 @@ class SlugGenerator
 	 * Apply all transforms with the specified locale
 	 * to the invalid parts of the text.
 	 *
-	 * @param string   $text
-	 * @param string   $valid
 	 * @param iterable $transforms
-	 * @param string   $locale
 	 *
-	 * @return string
 	 */
 	private function transform(string $text, string $valid, $transforms, string $locale): string
 	{
@@ -166,9 +150,7 @@ class SlugGenerator
 	 * Create a regular expression that matches all characters that are invalid
 	 * but whose lower/upper-case counterparts are valid.
 	 *
-	 * @param string $valid
 	 *
-	 * @return string
 	 */
 	private function createCaseRegex(string $valid): string
 	{
@@ -179,9 +161,7 @@ class SlugGenerator
 			$insensitive .= 'İı';
 		}
 
-		$insensitive = preg_replace_callback('(\\\\([pP])\{L([lu])\})s', function ($match) {
-			return '\\'.$match[1].'{L'.($match[2] === 'l' ? 'u' : 'l').'}';
-		}, $insensitive);
+		$insensitive = preg_replace_callback('(\\\\([pP])\{L([lu])\})s', fn($match) => '\\'.$match[1].'{L'.($match[2] === 'l' ? 'u' : 'l').'}', $insensitive);
 
 		return '((?:(?=(?i)['.$insensitive.'])[^'.$valid.'])+)us';
 	}
@@ -190,12 +170,7 @@ class SlugGenerator
 	 * Apply a transform rule with the specified locale
 	 * to the parts that match the regular expression.
 	 *
-	 * @param string $text
-	 * @param string $rule
-	 * @param string $locale
-	 * @param string $regex
 	 *
-	 * @return string
 	 */
 	private function applyTransformRule(string $text, string $rule, string $locale, string $regex): string
 	{
@@ -227,8 +202,6 @@ class SlugGenerator
 	 * @param string          $text
 	 * @param int             $index
 	 * @param int             $length
-	 *
-	 * @return string
 	 */
 	private function transformWithContext(\Transliterator $transliterator, string $text, int $index, int $length): string
 	{
@@ -255,10 +228,7 @@ class SlugGenerator
 	/**
 	 * Get the Transliterator for the specified transform rule and locale.
 	 *
-	 * @param string $rule
-	 * @param string $locale
 	 *
-	 * @return \Transliterator
 	 */
 	private function getTransliterator(string $rule, string $locale): \Transliterator
 	{
@@ -275,10 +245,7 @@ class SlugGenerator
 	 * Find the best matching Transliterator
 	 * for the specified transform rule and locale.
 	 *
-	 * @param string $rule
-	 * @param string $locale
 	 *
-	 * @return \Transliterator
 	 */
 	private function findMatchingTransliterator(string $rule, string $locale): \Transliterator
 	{
@@ -315,10 +282,7 @@ class SlugGenerator
 	/**
 	 * Apply fixes to a transform rule for older versions of the Intl extension.
 	 *
-	 * @param string $rule
-	 * @param string $locale
 	 *
-	 * @return string
 	 */
 	private function fixTransliteratorRule(string $rule, string $locale): string
 	{
@@ -353,8 +317,6 @@ class SlugGenerator
 	/**
 	 * Get all matching ranges.
 	 *
-	 * @param string $text
-	 * @param string $regex
 	 *
 	 * @return array Array of range arrays, each consisting of index and length
 	 */
@@ -362,9 +324,7 @@ class SlugGenerator
 	{
 		preg_match_all($regex, $text, $matches, PREG_OFFSET_CAPTURE);
 
-		$ranges = array_map(function ($match) {
-			return [$match[1], strlen($match[0])];
-		}, $matches[0]);
+		$ranges = array_map(fn($match) => [$match[1], strlen($match[0])], $matches[0]);
 
 		return $ranges;
 	}

@@ -47,7 +47,7 @@
 			} else {
 				// Added a line to .htaccess to hopefully give us IF_MODIFIED_SINCE when running as CGI
 				if (function_exists("apache_request_headers")) {
-					$headers = apache_request_headers();
+					$headers = getallheaders();
 					$ims = $headers["If-Modified-Since"];
 				} else {
 					$ims = $_SERVER["HTTP_IF_MODIFIED_SINCE"];
@@ -133,7 +133,7 @@
 			} else {
 				// Added a line to .htaccess to hopefully give us IF_MODIFIED_SINCE when running as CGI
 				if (function_exists("apache_request_headers")) {
-					$headers = apache_request_headers();
+					$headers = getallheaders();
 					$ims = $headers["If-Modified-Since"];
 				} else {
 					$ims = $_SERVER["HTTP_IF_MODIFIED_SINCE"];
@@ -173,7 +173,7 @@
 			$last_modified = filemtime($image_path);
 			
 			if (function_exists("apache_request_headers")) {
-				$headers = apache_request_headers();
+				$headers = getallheaders();
 				$ims = $headers["If-Modified-Since"];
 			} else {
 				$ims = $_SERVER["HTTP_IF_MODIFIED_SINCE"];
@@ -222,7 +222,7 @@
 			header("X-Robots-Tag: noindex");
 			include SERVER_ROOT."templates/basic/_maintenance.php";
 			$bigtree["content"] = ob_get_clean();
-			include SERVER_ROOT."templates/layouts/".($bigtree["layout"] ? $bigtree["layout"] : "default").".php";
+			include SERVER_ROOT."templates/layouts/".($bigtree["layout"] ?: "default").".php";
 			die();
 		}
 	}
@@ -233,10 +233,10 @@
 			define("EXTENSION_ROOT",SERVER_ROOT."extensions/".$bigtree["path"][1]."/");
 			$base_path = EXTENSION_ROOT;
 			$bigtree["extension_context"] = $bigtree["path"][1];
-			list($inc,$commands) = BigTree::route($base_path."templates/ajax/",array_slice($bigtree["path"],3));
+			[$inc, $commands] = BigTree::route($base_path."templates/ajax/",array_slice($bigtree["path"],3));
 		} else {
 			$base_path = SERVER_ROOT;
-			list($inc,$commands) = BigTree::route($base_path."templates/ajax/",array_slice($bigtree["path"],1));
+			[$inc, $commands] = BigTree::route($base_path."templates/ajax/",array_slice($bigtree["path"],1));
 		}		
 		
 		if (!file_exists($inc)) {
@@ -334,7 +334,7 @@
 	
 	// If we haven't already received our nav id through previewing...
 	if (empty($navid)) {
-		list($navid,$bigtree["commands"],$routed) = $cms->getNavId($bigtree["path"],$bigtree["preview"]);
+		[$navid, $bigtree["commands"], $routed] = $cms->getNavId($bigtree["path"],$bigtree["preview"]);
 		$commands = $bigtree["commands"]; // Backwards compatibility
 	}
 	
@@ -355,10 +355,10 @@
 		foreach (BigTreeCMS::$SiteRoots as $site_root => $site_data) {
 			if ($site_root === $bigtree["page"]["path"] && BIGTREE_SITE_TRUNK !== $site_data["trunk"]) {
 				BigTree::redirect($site_data["www_root"], "301");
-			} elseif (strpos($bigtree["page"]["path"], $site_root."/") === 0 && BIGTREE_SITE_TRUNK !== $site_data["trunk"]) {
+			} elseif (str_starts_with($bigtree["page"]["path"], $site_root."/") && BIGTREE_SITE_TRUNK !== $site_data["trunk"]) {
 				$request = ltrim($_SERVER["REQUEST_URI"], "/");
 				$url = substr($request, strlen($site_root) + 1);
-				
+
 				BigTree::redirect($site_data["www_root"].$url, "301");
 			}
 		}
@@ -371,7 +371,7 @@
 		if ($bigtree["page"]["seo_invisible"]) {
 			header("X-Robots-Tag: noindex");
 		}
-		
+
 		/* Backwards Compatibility */
 		$page = $bigtree["page"];
 		$resources = $bigtree["resources"];
@@ -381,11 +381,11 @@
 		if (is_array($bigtree["resources"])) {
 			foreach ($bigtree["resources"] as $key => $val) {
 				if (substr($key,0,1) != "_" && $key != "bigtree") { // Don't allow for SESSION or COOKIE injection and don't overwrite $bigtree
-					$$key = $bigtree["resources"][$key];
+					${$key} = $bigtree["resources"][$key];
 				}
 			}
 		}
-				
+
 		// Redirect lower if the template is !
 		if ($bigtree["page"]["template"] == "!") {
 			$nav = $cms->getNavByParent($bigtree["page"]["id"],1);
@@ -398,8 +398,8 @@
 		}
 
 		// Setup extension handler for templates
-		if (strpos($bigtree["page"]["template"],"*") !== false) {
-			list($extension,$template) = explode("*",$bigtree["page"]["template"]);
+		if (str_contains($bigtree["page"]["template"],"*")) {
+			[$extension, $template] = explode("*",$bigtree["page"]["template"]);
 			define("EXTENSION_ROOT",SERVER_ROOT."extensions/$extension/");
 			$bigtree["extension_context"] = $extension;
 		} else {
@@ -412,25 +412,25 @@
 			if (!$bigtree["page"]["path"]) {
 				$bigtree["commands"] = $bigtree["path"];
 			}
-			
+
 			if ($extension) {
-				list($inc,$commands) = BigTree::route(SERVER_ROOT."extensions/$extension/templates/routed/$template/", array_filter($bigtree["commands"]));
+				[$inc, $commands] = BigTree::route(SERVER_ROOT."extensions/$extension/templates/routed/$template/", array_filter($bigtree["commands"]));
 			} else {
-				list($inc,$commands) = BigTree::route(SERVER_ROOT."templates/routed/".$bigtree["page"]["template"]."/", array_filter($bigtree["commands"]));
+				[$inc, $commands] = BigTree::route(SERVER_ROOT."templates/routed/".$bigtree["page"]["template"]."/", array_filter($bigtree["commands"]));
 			}
-			
-			$command_count = count($commands);
+
+			$command_count = is_countable($commands) ? count($commands) : 0;
 
 			if ($command_count) {
 				$bigtree["routed_path"] = array_slice($bigtree["commands"], 0, $command_count * -1);
 			} else {
 				$bigtree["routed_path"] = $bigtree["commands"];
 			}
-			
+
 			$bigtree["routed_inc"] = $inc;
 			$bigtree["commands"] = $commands;
 			$bigtree["module_path"] = $bigtree["routed_path"]; // Backwards compat
-			
+
 			// Get the pieces of the location so we can get header and footers. Take away the first 2 routes since they're templates/routed/.
 			$pieces = array_slice(explode("/",str_replace(SERVER_ROOT,"",$inc)),2);
 			if ($extension) {
@@ -492,10 +492,10 @@
 
 	// If we have a specific URL trailing slash behavior specified, ensure it's applied to the current request now that we've ruled out 404s
 	if (array_filter($bigtree["path"]) && !defined("BIGTREE_URL_IS_404")) {
-		$last_path_element = $bigtree["path"][count($bigtree["path"]) - 1];
+		$last_path_element = $bigtree["path"][(is_countable($bigtree["path"]) ? count($bigtree["path"]) : 0) - 1];
 		
 		// If this is a "file", ignore the fact that there is or isn't a trailing slash
-		if (strpos($last_path_element, ".") === false) {
+		if (!str_contains($last_path_element, ".")) {
 			unset($_GET["bigtree_htaccess_url"]);
 
 			$query_string = !empty($_GET) ? "?".http_build_query($_GET) : "";
@@ -532,9 +532,7 @@
 	// If we're in HTTPS, make sure all Javascript, images, and CSS are pulling from HTTPS
 	if (BigTreeCMS::$Secure) {
 		// Replace CSS includes
-		$bigtree["content"] = preg_replace_callback('/<link [^>]*href="([^"]*)"/', function($matches) {
-			return str_replace('href="http://', 'href="https://', $matches[0]);
-		}, $bigtree["content"]);
+		$bigtree["content"] = preg_replace_callback('/<link [^>]*href="([^"]*)"/', fn($matches) => str_replace('href="http://', 'href="https://', $matches[0]), $bigtree["content"]);
 		// Replace script and image tags.
 		$bigtree["content"] = str_replace('src="http://','src="https://',$bigtree["content"]);
 		// Replace inline background images
@@ -584,7 +582,7 @@
 				$has_return_link = false;
 
 				foreach ($bar_edit_link_query_parts as $bar_edit_link_query_part) {
-					list($bar_edit_link_query_param, $bar_edit_link_query_value) = explode("=", $bar_edit_link_query_part);
+					[$bar_edit_link_query_param, $bar_edit_link_query_value] = explode("=", $bar_edit_link_query_part);
 
 					if (strtolower($bar_edit_link_query_param) == "return_link") {
 						$has_return_link = true;
@@ -624,5 +622,5 @@
 		if (!$bigtree["page"]["path"]) {
 			$bigtree["page"]["path"] = "!";
 		}
-		BigTree::putFile(BIGTREE_CACHE_DIRECTORY.md5(json_encode($_GET)).".page",$cache);
+		BigTree::putFile(BIGTREE_CACHE_DIRECTORY.md5(json_encode($_GET, JSON_THROW_ON_ERROR)).".page",$cache);
 	}

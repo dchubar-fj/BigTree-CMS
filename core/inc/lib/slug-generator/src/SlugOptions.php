@@ -20,30 +20,18 @@ namespace Ausi\SlugGenerator;
  */
 class SlugOptions implements \IteratorAggregate
 {
-	/**
-	 * @var string
-	 */
-	private $delimiter = '-';
+	private string $delimiter = '-';
 
-	/**
-	 * @var string
-	 */
-	private $validChars = 'a-z0-9';
+	private string $validChars = 'a-z0-9';
 
-	/**
-	 * @var string
-	 */
-	private $ignoreChars = '\p{Mn}\p{Lm}';
+	private string $ignoreChars = '\p{Mn}\p{Lm}';
 
-	/**
-	 * @var string
-	 */
-	private $locale = '';
+	private string $locale = '';
 
 	/**
 	 * @var string[]
 	 */
-	private $transforms = [
+	private array $transforms = [
 		'Upper',
 		'Lower',
 		'Latn',
@@ -53,10 +41,7 @@ class SlugOptions implements \IteratorAggregate
 		'Lower',
 	];
 
-	/**
-	 * @var array
-	 */
-	private $setOptions = [];
+	private array $setOptions = [];
 
 	/**
 	 * @param array $options See the setter methods for available options
@@ -89,8 +74,6 @@ class SlugOptions implements \IteratorAggregate
 	 * Merge the options with and return a new options object.
 	 *
 	 * @param array $options SlugOptions object or options array
-	 *
-	 * @return static
 	 */
 	public function merge(array $options): self
 	{
@@ -106,8 +89,6 @@ class SlugOptions implements \IteratorAggregate
 
 	/**
 	 * @param string $delimiter Delimiter that should be used between words
-	 *
-	 * @return static
 	 */
 	public function setDelimiter(string $delimiter): self
 	{
@@ -117,9 +98,6 @@ class SlugOptions implements \IteratorAggregate
 		return $this;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function getDelimiter(): string
 	{
 		return $this->delimiter;
@@ -129,8 +107,6 @@ class SlugOptions implements \IteratorAggregate
 	 * @param string $chars Character range for allowed characters
 	 *                      in the form of a regular expression character set,
 	 *                      e.g. `abc`, `a-z0-9` or `\p{Ll}\-_`
-	 *
-	 * @return static
 	 */
 	public function setValidChars(string $chars): self
 	{
@@ -142,9 +118,6 @@ class SlugOptions implements \IteratorAggregate
 		return $this;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function getValidChars(): string
 	{
 		return $this->validChars;
@@ -154,8 +127,6 @@ class SlugOptions implements \IteratorAggregate
 	 * @param string $chars Range of characters that get ignored
 	 *                      in the form of a regular expression character set,
 	 *                      e.g. `abc`, `a-z0-9` or `\p{Ll}\-_`
-	 *
-	 * @return static
 	 */
 	public function setIgnoreChars(string $chars): self
 	{
@@ -167,9 +138,6 @@ class SlugOptions implements \IteratorAggregate
 		return $this;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function getIgnoreChars(): string
 	{
 		return $this->ignoreChars;
@@ -178,8 +146,6 @@ class SlugOptions implements \IteratorAggregate
 	/**
 	 * @param string $locale Locale string that should be used for transforms
 	 *                       e.g. `de` or `en_US_Latn`
-	 *
-	 * @return static
 	 */
 	public function setLocale(string $locale): self
 	{
@@ -197,9 +163,6 @@ class SlugOptions implements \IteratorAggregate
 		return $this;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function getLocale(): string
 	{
 		return $this->locale;
@@ -209,8 +172,6 @@ class SlugOptions implements \IteratorAggregate
 	 * @param string $transform Rule or ruleset to be used by the Transliterator,
 	 *                          like `Lower`, `ASCII` or `a > b; c > d`
 	 * @param bool   $top       If it should be applied before existing transforms
-	 *
-	 * @return static
 	 */
 	public function addTransform(string $transform, bool $top = true): self
 	{
@@ -230,8 +191,6 @@ class SlugOptions implements \IteratorAggregate
 	/**
 	 * @param array $transforms List of rules or rulesets to be used by the Transliterator,
 	 *                             like `Lower`, `ASCII` or `a > b; c > d`
-	 *
-	 * @return static
 	 */
 	public function setTransforms(array $transforms): self
 	{
@@ -260,8 +219,6 @@ class SlugOptions implements \IteratorAggregate
 	 *
 	 * @param array $transforms List of rules or rulesets to be used by the Transliterator,
 	 *                             like `Lower`, `ASCII` or `a > b; c > d`
-	 *
-	 * @return static
 	 */
 	public function setPreTransforms(array $transforms): self
 	{
@@ -282,8 +239,6 @@ class SlugOptions implements \IteratorAggregate
 	 *
 	 * @param array $transforms List of rules or rulesets to be used by the Transliterator,
 	 *                             like `Lower`, `ASCII` or `a > b; c > d`
-	 *
-	 * @return static
 	 */
 	public function setPostTransforms(array $transforms): self
 	{
@@ -296,8 +251,6 @@ class SlugOptions implements \IteratorAggregate
 	}
 
 	/**
-	 * @param string $option
-	 *
 	 * @throws \InvalidArgumentException If it’s an invalid option name
 	 */
 	private function assertOptionName(string $option)
@@ -318,8 +271,6 @@ class SlugOptions implements \IteratorAggregate
 	}
 
 	/**
-	 * @param string $chars
-	 *
 	 * @throws \InvalidArgumentException If it’s an invalid regex character class
 	 */
 	private function assertCharacterClass(string $chars)

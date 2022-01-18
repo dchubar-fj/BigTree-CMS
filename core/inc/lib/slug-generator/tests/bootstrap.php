@@ -13,9 +13,7 @@ declare(strict_types=1);
 
 error_reporting(E_ALL);
 
-$include = function ($file) {
-	return file_exists($file) ? include $file : false;
-};
+$include = fn($file) => file_exists($file) ? include $file : false;
 
 if (
 	false === ($loader = $include(__DIR__.'/../vendor/autoload.php'))

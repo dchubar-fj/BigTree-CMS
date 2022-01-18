@@ -211,7 +211,7 @@ class File_ANSI
      * @return File_ANSI
      * @access public
      */
-    function File_ANSI()
+    function __construct()
     {
         $this->setHistory(200);
         $this->setDimensions(80, 24);
@@ -308,7 +308,7 @@ class File_ANSI
                         $this->history_attrs = array_merge($this->history_attrs, array_slice(array_splice($this->attrs, $this->y + 1), 0, $this->old_y));
                         $this->attrs = array_merge($this->attrs, array_fill($this->y, $this->max_y, $this->attr_row));
 
-                        if (count($this->history) == $this->max_history) {
+                        if (count((array) $this->history) == $this->max_history) {
                             array_shift($this->history);
                             array_shift($this->history_attrs);
                         }
@@ -488,7 +488,7 @@ class File_ANSI
             $this->history_attrs = array_merge($this->history_attrs, array(array_shift($this->attrs)));
             $this->attrs[] = $this->attr_row;
 
-            if (count($this->history) >= $this->max_history) {
+            if (count((array) $this->history) >= $this->max_history) {
                 array_shift($this->history);
                 array_shift($this->history_attrs);
             }
@@ -541,7 +541,7 @@ class File_ANSI
     function getHistory()
     {
         $scrollback = '';
-        for ($i = 0; $i < count($this->history); $i++) {
+        for ($i = 0; $i < count((array) $this->history); $i++) {
             for ($j = 0; $j <= $this->max_x + 1; $j++) {
                 if (isset($this->history_attrs[$i][$j])) {
                     $scrollback.= $this->history_attrs[$i][$j];

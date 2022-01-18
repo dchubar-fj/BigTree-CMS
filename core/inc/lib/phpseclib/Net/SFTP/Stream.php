@@ -138,7 +138,7 @@ class Net_SFTP_Stream
         if (in_array($protocol, stream_get_wrappers(), true)) {
             return false;
         }
-        $class = function_exists('get_called_class') ? get_called_class() : __CLASS__;
+        $class = function_exists('get_called_class') ? static::class : self::class;
         return stream_wrapper_register($protocol, $class);
     }
 
@@ -147,7 +147,7 @@ class Net_SFTP_Stream
      *
      * @access public
      */
-    function Net_SFTP_Stream()
+    function __construct()
     {
         if (defined('NET_SFTP_STREAM_LOGGING')) {
             echo "__construct()\r\n";
@@ -172,7 +172,11 @@ class Net_SFTP_Stream
      */
     function _parse_path($path)
     {
-        extract(parse_url($path) + array('port' => 22));
+        $context = [];
+        $scheme = null;
+        $port = null;
+        $tmp = parse_url($path) + array('port' => 22);
+        extract($tmp);
 
         if (!isset($host)) {
             return false;
@@ -187,11 +191,11 @@ class Net_SFTP_Stream
 
         if ($host[0] == '$') {
             $host = substr($host, 1);
-            global $$host;
-            if (!is_object($$host) || get_class($$host) != 'Net_SFTP') {
+            global ${$host};
+            if (!is_object(${$host}) || ${$host}::class != 'Net_SFTP') {
                 return false;
             }
-            $this->sftp = $$host;
+            $this->sftp = ${$host};
         } else {
             if (isset($this->context)) {
                 $context = stream_context_get_options($this->context);
@@ -202,7 +206,7 @@ class Net_SFTP_Stream
             if (isset($context[$scheme]['sftp'])) {
                 $sftp = $context[$scheme]['sftp'];
             }
-            if (isset($sftp) && is_object($sftp) && get_class($sftp) == 'Net_SFTP') {
+            if (isset($sftp) && is_object($sftp) && $sftp::class == 'Net_SFTP') {
                 $this->sftp = $sftp;
                 return $path;
             }
@@ -212,7 +216,7 @@ class Net_SFTP_Stream
             if (isset($context[$scheme]['password'])) {
                 $pass = $context[$scheme]['password'];
             }
-            if (isset($context[$scheme]['privkey']) && is_object($context[$scheme]['privkey']) && get_Class($context[$scheme]['privkey']) == 'Crypt_RSA') {
+            if (isset($context[$scheme]['privkey']) && is_object($context[$scheme]['privkey']) && $context[$scheme]['privkey']::class == 'Crypt_RSA') {
                 $pass = $context[$scheme]['privkey'];
             }
 
@@ -306,13 +310,9 @@ class Net_SFTP_Stream
      */
     function _stream_read($count)
     {
-        switch ($this->mode) {
-            case 'w':
-            case 'a':
-            case 'x':
-            case 'c':
-                return false;
-        }
+        return match ($this->mode) {
+            'w', 'a', 'x', 'c' => false,
+        };
 
         // commented out because some files - eg. /dev/urandom - will say their size is 0 when in fact it's kinda infinite
         //if ($this->pos >= $this->size) {
@@ -447,22 +447,13 @@ class Net_SFTP_Stream
             return false;
         }
 
-        // stream_metadata was introduced in PHP 5.4.0 but as of 5.4.11 the constants haven't been defined
-        // see http://www.php.net/streamwrapper.stream-metadata and https://bugs.php.net/64246
-        //     and https://github.com/php/php-src/blob/master/main/php_streams.h#L592
-        switch ($option) {
-            case 1: // PHP_STREAM_META_TOUCH
-                return $this->sftp->touch($path, $var[0], $var[1]);
-            case 2: // PHP_STREAM_OWNER_NAME
-            case 3: // PHP_STREAM_GROUP_NAME
-                return false;
-            case 4: // PHP_STREAM_META_OWNER
-                return $this->sftp->chown($path, $var);
-            case 5: // PHP_STREAM_META_GROUP
-                return $this->sftp->chgrp($path, $var);
-            case 6: // PHP_STREAM_META_ACCESS
-                return $this->sftp->chmod($path, $var) !== false;
-        }
+        return match ($option) {
+            1 => $this->sftp->touch($path, $var[0], $var[1]),
+            2, 3 => false,
+            4 => $this->sftp->chown($path, $var),
+            5 => $this->sftp->chgrp($path, $var),
+            6 => $this->sftp->chmod($path, $var) !== false,
+        };
     }
 
     /**
@@ -782,7 +773,7 @@ class Net_SFTP_Stream
     {
         if (defined('NET_SFTP_STREAM_LOGGING')) {
             echo $name . '(';
-            $last = count($arguments) - 1;
+            $last = (is_countable($arguments) ? count($arguments) : 0) - 1;
             foreach ($arguments as $i => $argument) {
                 var_export($argument);
                 if ($i != $last) {

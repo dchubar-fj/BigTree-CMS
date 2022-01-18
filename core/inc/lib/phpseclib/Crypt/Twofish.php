@@ -506,8 +506,8 @@ class Crypt_Twofish extends Crypt_Base
 
         switch (strlen($this->key)) {
             case 16:
-                list ($s7, $s6, $s5, $s4) = $this->_mdsrem($le_longs[1], $le_longs[2]);
-                list ($s3, $s2, $s1, $s0) = $this->_mdsrem($le_longs[3], $le_longs[4]);
+                [$s7, $s6, $s5, $s4] = $this->_mdsrem($le_longs[1], $le_longs[2]);
+                [$s3, $s2, $s1, $s0] = $this->_mdsrem($le_longs[3], $le_longs[4]);
                 for ($i = 0, $j = 1; $i < 40; $i+= 2,$j+= 2) {
                     $A = $m0[$q0[$q0[$i] ^ $key[ 9]] ^ $key[1]] ^
                          $m1[$q0[$q1[$i] ^ $key[10]] ^ $key[2]] ^
@@ -529,9 +529,9 @@ class Crypt_Twofish extends Crypt_Base
                 }
                 break;
             case 24:
-                list ($sb, $sa, $s9, $s8) = $this->_mdsrem($le_longs[1], $le_longs[2]);
-                list ($s7, $s6, $s5, $s4) = $this->_mdsrem($le_longs[3], $le_longs[4]);
-                list ($s3, $s2, $s1, $s0) = $this->_mdsrem($le_longs[5], $le_longs[6]);
+                [$sb, $sa, $s9, $s8] = $this->_mdsrem($le_longs[1], $le_longs[2]);
+                [$s7, $s6, $s5, $s4] = $this->_mdsrem($le_longs[3], $le_longs[4]);
+                [$s3, $s2, $s1, $s0] = $this->_mdsrem($le_longs[5], $le_longs[6]);
                 for ($i = 0, $j = 1; $i < 40; $i+= 2, $j+= 2) {
                     $A = $m0[$q0[$q0[$q1[$i] ^ $key[17]] ^ $key[ 9]] ^ $key[1]] ^
                          $m1[$q0[$q1[$q1[$i] ^ $key[18]] ^ $key[10]] ^ $key[2]] ^
@@ -553,10 +553,10 @@ class Crypt_Twofish extends Crypt_Base
                 }
                 break;
             default: // 32
-                list ($sf, $se, $sd, $sc) = $this->_mdsrem($le_longs[1], $le_longs[2]);
-                list ($sb, $sa, $s9, $s8) = $this->_mdsrem($le_longs[3], $le_longs[4]);
-                list ($s7, $s6, $s5, $s4) = $this->_mdsrem($le_longs[5], $le_longs[6]);
-                list ($s3, $s2, $s1, $s0) = $this->_mdsrem($le_longs[7], $le_longs[8]);
+                [$sf, $se, $sd, $sc] = $this->_mdsrem($le_longs[1], $le_longs[2]);
+                [$sb, $sa, $s9, $s8] = $this->_mdsrem($le_longs[3], $le_longs[4]);
+                [$s7, $s6, $s5, $s4] = $this->_mdsrem($le_longs[5], $le_longs[6]);
+                [$s3, $s2, $s1, $s0] = $this->_mdsrem($le_longs[7], $le_longs[8]);
                 for ($i = 0, $j = 1; $i < 40; $i+= 2, $j+= 2) {
                     $A = $m0[$q0[$q0[$q1[$q1[$i] ^ $key[25]] ^ $key[17]] ^ $key[ 9]] ^ $key[1]] ^
                          $m1[$q0[$q1[$q1[$q0[$i] ^ $key[26]] ^ $key[18]] ^ $key[10]] ^ $key[2]] ^
@@ -751,18 +751,15 @@ class Crypt_Twofish extends Crypt_Base
      */
     function _setupInlineCrypt()
     {
-        $lambda_functions =& Crypt_Twofish::_getLambdaFunctions();
+        $lambda_functions =& (new Crypt_Twofish())->_getLambdaFunctions();
 
         // Max. 10 Ultra-Hi-optimized inline-crypt functions. After that, we'll (still) create very fast code, but not the ultimate fast one.
-        $gen_hi_opt_code = (bool)( count($lambda_functions) < 10 );
+        $gen_hi_opt_code = (bool)( (is_countable($lambda_functions) ? count($lambda_functions) : 0) < 10 );
 
-        switch (true) {
-            case $gen_hi_opt_code:
-                $code_hash = md5(str_pad("Crypt_Twofish, {$this->mode}, ", 32, "\0") . $this->key);
-                break;
-            default:
-                $code_hash = "Crypt_Twofish, {$this->mode}";
-        }
+        $code_hash = match (true) {
+            $gen_hi_opt_code => md5(str_pad("Crypt_Twofish, {$this->mode}, ", 32, "\0") . $this->key),
+            default => "Crypt_Twofish, {$this->mode}",
+        };
 
         if (!isset($lambda_functions[$code_hash])) {
             switch (true) {
